@@ -848,7 +848,7 @@ function renderWords(submenu = null) {
   }
 
   grid.innerHTML = words.map((w, i) => {
-    const color = w.tag ? tagColor(w.tag) : null;
+    const color = (w.tag || w.submenu?.tag) ? tagColor(w.tag || w.submenu?.tag) : null;
     const style = color ? `style="border-color:${color};color:${color}"` : '';
     const label = w.submenu ? w.label + '》' : w.await ? w.label + '＞' : w.label;
     return `<button class="word-btn" ${style} data-idx="${i}">${label}</button>`;
