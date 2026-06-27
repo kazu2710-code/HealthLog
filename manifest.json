@@ -1,0 +1,25 @@
+{
+  "name": "HealthLog",
+  "short_name": "HealthLog",
+  "description": "時系列健康ログアプリ",
+  "start_url": "/HealthLog/healthlog.html",
+  "scope": "/HealthLog/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icon192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
