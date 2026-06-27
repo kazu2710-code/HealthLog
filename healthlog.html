@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>HealthLog</title>
+<link rel="manifest" href="/HealthLog/manifest.json">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -1339,6 +1340,10 @@ renderTabBar();
 renderWords();
 initEditor();
 setInterval(renderSchedule, 60000);
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/HealthLog/sw.js", { scope: "/HealthLog/" });
+}
 </script>
 </body>
 </html>
