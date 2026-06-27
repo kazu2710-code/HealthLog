@@ -1,4 +1,4 @@
-const CACHE_NAME = 'healthlog-v1';
+const CACHE_NAME = 'healthlog-v2';
 const ASSETS = [
   '/HealthLog/healthlog.html',
   '/HealthLog/manifest.json',
