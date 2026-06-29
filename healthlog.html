@@ -522,7 +522,7 @@ const L = {
     menuClear:        "🗑\u3000全消去",
     toastProfileVersion: (v) => `プロファイルバージョンが異なります (v${v}→v1 が必要)`,
     filterTitle:      "フィルター — タグを選択",
-    filterAll:        "全表示",
+    filterAll:        "リセット",
     filterNoTag:      "タグなし行を表示",
     filterNoTags:     "タグがまだありません",
     filterClose:      "閉じる",
@@ -553,7 +553,7 @@ const L = {
     menuClear:        "🗑  Clear All",
     toastProfileVersion: (v) => `Profile version mismatch (v${v} loaded, v1 required)`,
     filterTitle:      "Filter — Select Tags",
-    filterAll:        "Show All",
+    filterAll:        "Reset",
     filterNoTag:      "Show untagged entries",
     filterNoTags:     "No tags yet",
     filterClose:      "Close",
@@ -1026,6 +1026,8 @@ function openFilterPanel() {
       const t = btn.dataset.tag;
       if (t === '__all__') {
         filterTags = null;
+        filterShowNoTag = true;
+        document.getElementById('filter-notag-chk').checked = true;
       } else {
         if (filterTags === null) filterTags = new Set();
         if (filterTags.has(t)) { filterTags.delete(t); if (filterTags.size === 0) filterTags = null; }
