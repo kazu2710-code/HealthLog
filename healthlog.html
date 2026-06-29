@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>HealthLog</title>
-<link rel="manifest" href="/HealthLog/manifest.json">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -42,28 +41,10 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
-    gap: 8px;
   }
-  #header-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; overflow: hidden; }
-  #btn-filter-header {
-    background: none;
-    border: none;
-    color: var(--text2);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px 2px;
-    flex-shrink: 0;
-  }
-  #btn-filter-header:active { color: var(--accent); }
-  #filter-indicator {
-    font-size: 12px;
-    color: var(--accent);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    min-width: 0;
-  }
+  #header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  #header-title { font-size: 11px; color: var(--text2); letter-spacing: 0.05em; white-space: nowrap; }
+  #clock { font-family: var(--font-mono); font-size: 18px; color: var(--accent); white-space: nowrap; }
   .hbtn {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -84,17 +65,6 @@
     cursor: pointer;
   }
   .hbtn-danger:active { background: #f07070; color: #000; }
-  #btn-save {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 6px;
-    padding: 5px 10px;
-    font-size: 16px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  #btn-save:active { background: var(--done); color: #000; }
 
   /* FILE MENU */
   #file-menu-wrap { position: relative; }
@@ -144,13 +114,12 @@
   /* SCHEDULE */
   #schedule-strip {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     padding: 6px 10px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    overflow-x: auto;
     flex-shrink: 0;
-    -webkit-overflow-scrolling: touch;
   }
   .sched-item {
     display: flex;
@@ -432,18 +401,27 @@
     cursor: pointer;
   }
   #filter-close:active { background: var(--accent); color: #000; }
+  /* フィルター状態インジケーター */
+  #filter-indicator {
+    display: none;
+    font-size: 11px;
+    color: var(--accent);
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  #filter-indicator.active { display: inline; }
 </style>
 </head>
 <body>
 
 <div id="header">
   <div id="header-left">
-    <button id="btn-filter-header">🔍</button>
-    <span id="filter-indicator"></span>
+    <div id="header-title">HealthLog</div>
+    <div id="clock">--:--:--</div>
+    <span id="filter-indicator">🔍</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <button id="btn-zoom" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 10px;font-size:16px;cursor:pointer">＋</button>
-    <button id="btn-save">💾</button>
+    <button id="btn-zoom" style="background:var(--panel);border:1px solid var(--border);color:var(--text1);border-radius:6px;padding:4px 10px;font-size:16px;cursor:pointer">＋</button>
     <div id="file-menu-wrap">
     <button id="btn-filemenu">…</button>
     <div id="file-dropdown">
@@ -453,7 +431,6 @@
       <button class="fditem" style="border-top:1px solid var(--border);margin-top:2px;padding-top:13px" id="fd-panel-import">🎛　プロファイルを読み込む</button>
       <button class="fditem fditem-danger" style="border-top:1px solid var(--border);margin-top:2px;padding-top:13px" id="fd-purge">🗂　過去ログを消去</button>
       <button class="fditem fditem-danger" id="fd-clear">🗑　全消去</button>
-      <button class="fditem" style="border-top:1px solid var(--border);margin-top:2px;padding-top:13px;color:var(--text2)" id="fd-about">ℹ　HealthLogについて</button>
     </div>
   </div>
   <input type="file" id="file-input" accept=".txt" style="display:none">
@@ -848,7 +825,7 @@ function renderWords(submenu = null) {
   }
 
   grid.innerHTML = words.map((w, i) => {
-    const color = (w.tag || w.submenu?.tag) ? tagColor(w.tag || w.submenu?.tag) : null;
+    const color = w.tag ? tagColor(w.tag) : null;
     const style = color ? `style="border-color:${color};color:${color}"` : '';
     const label = w.submenu ? w.label + '》' : w.await ? w.label + '＞' : w.label;
     return `<button class="word-btn" ${style} data-idx="${i}">${label}</button>`;
@@ -937,6 +914,10 @@ function renderSchedule() {
   const strip = document.getElementById('schedule-strip');
   const now = nowHHMM();
   strip.innerHTML = SCHEDULE.map((s, i) => {
+    // breakデリミター：強制改行ブロック
+    if (s.break) {
+      return '<div style="flex-basis:100%;height:0;margin:0;padding:0"></div>';
+    }
     const done = !!schedDone[i];
     const missed = !done && s.time < now;
     return `<div class="sched-item ${done?'done':''} ${missed?'missed':''}" data-idx="${i}">
@@ -948,20 +929,22 @@ function renderSchedule() {
     el.addEventListener('click', () => {
       const idx = +el.dataset.idx;
       const s = SCHEDULE[idx];
-      const label = `${s.label}(${s.time})`;
+      // bodyキーがあればbody、なければ従来どおり"label(time)"
+      const logBody = s.body ? s.body : `${s.label}(${s.time})`;
+      const confirmLabel = `${s.label}(${s.time})`;
       if (schedDone[idx]) {
-        if (!confirm(t('confirmSchedDel', label))) return;
+        if (!confirm(t('confirmSchedDel', confirmLabel))) return;
         delete schedDone[idx];
         // 下方（最新）から検索して今日の記録を削除
         let pos = -1;
         for (let j = logs.length - 1; j >= 0; j--) {
-          if (logs[j].type === "log" && logs[j].body === label) { pos = j; break; }
+          if (logs[j].type === "log" && logs[j].body === logBody) { pos = j; break; }
         }
         if (pos >= 0) logs.splice(pos, 1);
       } else {
         schedDone[idx] = true;
         const t = nowHHMM();
-        const entry = { type:"log", time: t, body: label };
+        const entry = { type:"log", time: t, body: logBody };
         let delimPos = -1;
         for (let i = logs.length - 1; i >= 0; i--) {
           if (logs[i].type === "delim") { delimPos = i; break; }
@@ -1063,14 +1046,13 @@ function openFilterPanel() {
 function updateFilterIndicator() {
   const ind = document.getElementById('filter-indicator');
   const active = filterTags !== null || !filterShowNoTag;
+  ind.classList.toggle('active', active);
   if (filterTags && filterTags.size > 0) {
-    ind.textContent = [...filterTags].join('  ');
-    ind.style.color = 'var(--accent)';
+    ind.textContent = '🔍 ' + [...filterTags].join(' ');
   } else if (!filterShowNoTag) {
     ind.textContent = t('filterActive');
-    ind.style.color = 'var(--accent)';
   } else {
-    ind.textContent = '';
+    ind.textContent = '🔍';
   }
 }
 
@@ -1090,18 +1072,11 @@ function logMatchesFilter(entry) {
   return false;
 }
 
-document.getElementById('btn-filter-header').addEventListener('click', () => {
-  openFilterPanel();
-});
 document.getElementById('filter-indicator').addEventListener('click', () => {
-  if (filterTags !== null || !filterShowNoTag) {
-    filterTags = null;
-    filterShowNoTag = true;
-    updateFilterIndicator();
-    renderLog();
-  } else {
-    openFilterPanel();
-  }
+  filterTags = null;
+  filterShowNoTag = true;
+  updateFilterIndicator();
+  renderLog();
 });
 
 document.getElementById('filter-close').addEventListener('click', () => {
@@ -1131,19 +1106,6 @@ function logsToText() {
 document.getElementById('fd-filter').addEventListener('click', () => {
   fileDropdown.classList.remove('open');
   openFilterPanel();
-});
-
-// 💾 クイックセーブ
-document.getElementById('btn-save').addEventListener('click', () => {
-  const text = logsToText();
-  const a = document.createElement('a');
-  const firstDelim = logs.find(l => l.type === "delim");
-  const uid = currentUserID ? `_${currentUserID}` : "";
-  const fname = firstDelim ? `healthlog${uid}_${firstDelim.date}.txt` : `healthlog${uid}.txt`;
-  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
-  a.download = fname;
-  a.click();
-  showToast(t('toastSaved'));
 });
 
 // 保存
@@ -1263,15 +1225,6 @@ document.getElementById('fd-purge').addEventListener('click', () => {
   }
 });
 
-// HealthLogについて
-document.getElementById('fd-about').addEventListener('click', () => {
-  fileDropdown.classList.remove('open');
-  const profileInfo = currentUserID
-    ? `profileVersion: ${REQUIRED_PROFILE_VERSION}\nuserID: ${currentUserID}`
-    : `profileVersion: ${REQUIRED_PROFILE_VERSION}\n（プロファイル未読み込み）`;
-  alert(`HealthLog\n\n${profileInfo}\n\n─────────────\n© 2026 kazuhiro`);
-});
-
 // 全消去
 document.getElementById('fd-clear').addEventListener('click', () => {
   fileDropdown.classList.remove('open');
@@ -1304,6 +1257,15 @@ document.getElementById('btn-zoom').addEventListener('click', () => {
   }
   renderLog();
 });
+
+// ===== CLOCK =====
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    String(d.getHours()).padStart(2,'0') + ':' +
+    String(d.getMinutes()).padStart(2,'0') + ':' +
+    String(d.getSeconds()).padStart(2,'0');
+}
 
 // ===== TOAST =====
 function showToast(msg) {
@@ -1339,11 +1301,9 @@ renderSchedule();
 renderTabBar();
 renderWords();
 initEditor();
+tickClock();
+setInterval(tickClock, 1000);
 setInterval(renderSchedule, 60000);
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/HealthLog/sw.js", { scope: "/HealthLog/" });
-}
 </script>
 </body>
 </html>
